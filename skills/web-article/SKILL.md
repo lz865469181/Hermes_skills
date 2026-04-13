@@ -90,6 +90,21 @@ print(result["title"])
 print(result["content"])
 ```
 
+## ⚠️ Browser Use API 关键陷阱
+
+Browser Use agent **不会**自动使用 `url` 字段的值。必须把 URL 显式写在 `task` 字符串里，否则 agent 会回复"忘记在消息中包含 URL"。
+
+```python
+# ❌ 错误 — agent 说没收到 URL
+requests.post(f"{BASE}/sessions", json={"url": url, "task": "Extract title"})
+
+# ✅ 正确 — URL 写在 task 里
+requests.post(f"{BASE}/sessions", json={
+    "url": url,
+    "task": f"Go to: {url}\n\nExtract the article title and full text content.",
+})
+```
+
 ## 免费额度（2026-04）
 
 Browser Use 官方为 Hermes Agent 用户提供**免费试用**：
