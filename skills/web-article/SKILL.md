@@ -16,6 +16,35 @@ triggers:
 
 通用网页文章内容提取工具。使用 Browser Use 云端浏览器自动化，**无需本地浏览器**，支持所有 JS 渲染站点。
 
+## ⚠️ 首次使用配置
+
+**必须设置 API Key，否则无法使用。**
+
+### Step 1: 获取 Browser Use API Key
+
+1. 打开 https://cloud.browser-use.com/settings?tab=api-keys&new=1
+2. 登录/注册账号
+3. 创建一个新的 API Key
+4. 复制 Key（格式：`bu_xxx`）
+
+### Step 2: 写入配置文件
+
+```bash
+# 复制配置文件模板
+cp skills/web-article/.env.example ~/.hermes/.env
+
+# 编辑 ~/.hermes/.env，填入你的 API Key：
+# BROWSER_USE_API_KEY=bu_your_key_here
+```
+
+### Step 3: 验证安装
+
+```bash
+python3 skills/web-article/src/scraper.py "https://example.com" --title-only
+```
+
+---
+
 ## 支持场景
 
 | 站点类型 | 示例 | 状态 |
@@ -26,13 +55,6 @@ triggers:
 | Medium / Dev.to | medium.com | ✅ |
 | 新闻站点 | 任意 JS 渲染站 | ✅ |
 | 普通 HTML 站 | 任意静态站 | ✅ |
-
-## 环境要求
-
-```bash
-# 设置 API Key
-echo "BROWSER_USE_API_KEY=bu_your_key_here" >> ~/.hermes/.env
-```
 
 ## 使用方法
 
@@ -47,75 +69,25 @@ Hermes: 加载 web-article skill，使用 Browser Use 提取内容
 
 ```bash
 # 基本用法
-python3 src/scraper.py "https://mp.weixin.qq.com/s/xxxxx"
+python3 skills/web-article/src/scraper.py "https://mp.weixin.qq.com/s/xxxxx"
 
 # 只提取标题
-python3 src/scraper.py "https://mp.weixin.qq.com/s/xxxxx" --title-only
+python3 skills/web-article/src/scraper.py "https://mp.weixin.qq.com/s/xxxxx" --title-only
 
 # 批量抓取
-python3 src/scraper.py --batch urls.txt
+python3 skills/web-article/src/scraper.py --batch urls.txt
 ```
 
 ## Python API
 
 ```python
+import sys
+sys.path.insert(0, "skills/web-article/src")
 from scraper import scrape_article
 
 result = scrape_article("https://mp.weixin.qq.com/s/xxxxx")
 print(result["title"])
 print(result["content"])
-```
-
-## Browser Use API 原理
-
-```
-POST /sessions → 创建渲染任务
-     ↓
-轮询 GET /sessions/{id} 直到 status = success
-     ↓
-返回提取的文本内容
-```
-
-### 直接调用
-
-```python
-import requests, time, os
-
-API_KEY = os.environ["BROWSER_USE_API_KEY"]
-BASE = "https://api.browser-use.com/api/v3"
-HEADERS = {
-    "X-Browser-Use-API-Key": API_KEY,
-    "Content-Type": "application/json",
-}
-
-def create_session(url, task):
-    resp = requests.post(
-        f"{BASE}/sessions",
-        headers=HEADERS,
-        json={"url": url, "task": task},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()["id"]
-
-def wait_for_result(session_id, timeout=120):
-    for _ in range(timeout // 5):
-        resp = requests.get(
-            f"{BASE}/sessions/{session_id}",
-            headers=HEADERS,
-            timeout=60,
-        )
-        result = resp.json()
-        if result["status"] == "success":
-            return result["output"]
-        elif result["status"] == "failed":
-            raise RuntimeError(f"Failed: {result.get('lastStepSummary')}")
-        time.sleep(5)
-    raise TimeoutError(f"Session {session_id} timed out")
-
-url = "https://mp.weixin.qq.com/s/xxxxx"
-task = "Extract the article title and full text content."
-content = wait_for_result(create_session(url, task))
 ```
 
 ## 免费额度（2026-04）
